@@ -38,7 +38,7 @@ searcher = EmbeddingSearcher(embeddings_file=embeddings_file)
 
 class SearchQuery(BaseModel):
     query: str
-    top_k: int = 5
+    top_k: int = 10
 
 
 class SearchResult(BaseModel):
