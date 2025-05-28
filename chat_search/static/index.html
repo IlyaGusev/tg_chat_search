@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NLP Chat Search</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 40px auto;
+            padding: 0 20px;
+        }
+        .search-container {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        #searchInput {
+            width: 70%;
+            padding: 10px;
+            font-size: 16px;
+        }
+        #searchButton {
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+            margin-left: 10px;
+        }
+        .result {
+            margin-bottom: 20px;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        .result .message {
+            margin-bottom: 10px;
+            white-space: pre-wrap;
+        }
+        .result .link {
+            color: #2962ff;
+            margin-left: 5px;
+            text-decoration: none;
+        }
+        .result .link:hover {
+            text-decoration: underline;
+        }
+        .result .similarity {
+            color: #666;
+            font-size: 0.9em;
+        }
+        .answer {
+            margin-bottom: 20px;
+            padding: 15px;
+            background-color: #f5f5f5;
+            border-radius: 4px;
+            white-space: pre-wrap;
+        }
+        .loading {
+            margin: 20px 0;
+            font-style: italic;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <div class="search-container">
+        <h1>NLP Chat Search</h1>
+        <input type="text" id="searchInput" placeholder="Enter your search query...">
+        <button id="searchButton">Search</button>
+    </div>
+    <div id="results"></div>
+
+    <script>
+        document.getElementById('searchButton').addEventListener('click', performSearch);
+        document.getElementById('searchInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                performSearch();
+            }
+        });
+
+        async function performSearch() {
+            const query = document.getElementById('searchInput').value;
+            if (!query) return;
+
+            try {
+                showLoading('Searching...');
+                const response = await fetch(`${window.location.origin}/search`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        query: query,
+                        top_k: 5
+                    })
+                });
+
+                const data = await response.json();
+                displayResults(data.answer, data.results);
+            } catch (error) {
+                console.error('Error:', error);
+                document.getElementById('results').innerHTML = '<p style="color: red;">Error performing search. Please try again.</p>';
+            } finally {
+                hideLoading();
+            }
+        }
+
+        function displayResults(answer, results) {
+            const resultsDiv = document.getElementById('results');
+            resultsDiv.innerHTML = '';
+
+            // Display answer if available
+            if (answer) {
+                const answerElement = document.createElement('div');
+                answerElement.className = 'answer';
+                answerElement.textContent = answer;
+                resultsDiv.appendChild(answerElement);
+            }
+
+            if (!results.length) {
+                resultsDiv.innerHTML += '<p>No results found.</p>';
+                return;
+            }
+
+            results.forEach(result => {
+                const resultElement = document.createElement('div');
+                resultElement.className = 'result';
+                
+                // Split text by line breaks and create message elements
+                const messages = result.text.split('\n').filter(msg => msg.trim());
+                const urlsPerMessage = Math.ceil(result.urls.length / messages.length);
+                let urlIndex = 0;
+
+                const messagesHtml = messages.map((message, i) => {
+                    const messageUrls = result.urls.slice(urlIndex, urlIndex + urlsPerMessage);
+                    urlIndex += urlsPerMessage;
+                    
+                    const urlsHtml = messageUrls.map(url => 
+                        `<a href="${url}" target="_blank" class="link">(link)</a>`
+                    ).join('');
+
+                    return `<div class="message">${message}${urlsHtml}</div>`;
+                }).join('');
+
+                resultElement.innerHTML = `
+                    ${messagesHtml}
+                    <div class="similarity">Similarity: ${(result.similarity * 100).toFixed(1)}%</div>
+                `;
+                resultsDiv.appendChild(resultElement);
+            });
+        }
+
+        function showLoading(message) {
+            const loadingDiv = document.createElement('div');
+            loadingDiv.className = 'loading';
+            loadingDiv.id = 'loadingMessage';
+            loadingDiv.textContent = message;
+            document.getElementById('results').prepend(loadingDiv);
+        }
+
+        function hideLoading() {
+            const loadingDiv = document.getElementById('loadingMessage');
+            if (loadingDiv) {
+                loadingDiv.remove();
+            }
+        }
+    </script>
+</body>
+</html> 
