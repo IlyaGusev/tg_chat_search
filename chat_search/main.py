@@ -74,7 +74,7 @@ async def search_and_answer(query: SearchQuery) -> SearchAndAnswerResponse:
 
         # Get relevant context through semantic search
         logger.info("Performing semantic search...")
-        results: List[Dict[str, Any]] = searcher.find_similar(query.query, query.top_k)
+        results: List[Dict[str, Any]] = await searcher.find_similar(query.query, query.top_k)
         logger.info(f"Found {len(results)} results")
 
         # Format context from search results
@@ -84,12 +84,10 @@ async def search_and_answer(query: SearchQuery) -> SearchAndAnswerResponse:
                 for result in results
             ]
         )
-        logger.info("Formatted context for LLM")
 
-        # Generate answer
         logger.info("Generating answer with LLM...")
         try:
-            response = generate_text(PROMPT.format(context=context, query=query.query))
+            response = await generate_text(PROMPT.format(context=context, query=query.query))
             logger.info("Successfully generated answer")
         except Exception as e:
             logger.error(f"Error generating text: {str(e)}")

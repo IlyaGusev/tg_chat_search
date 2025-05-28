@@ -1,19 +1,26 @@
-from google import genai  # type: ignore
 import logging
+import os
+
+from openai import AsyncOpenAI
+from dotenv import load_dotenv
 
 logger = logging.getLogger(__name__)
 
-client = genai.Client(vertexai=True, project="genai-415421", location="us-central1")
+load_dotenv()
+
+client = AsyncOpenAI(
+    base_url="https://generativelanguage.googleapis.com/v1beta/openai/",
+    api_key=os.getenv("GOOGLE_API_KEY"),
+)
 
 
-def generate_text(prompt: str, model_name: str = "gemini-2.5-flash-preview-04-17") -> str:
+async def generate_text(prompt: str, model_name: str = "gemini-2.5-flash-preview-04-17") -> str:
     logger.info(f"Generating text with model: {model_name}")
     try:
-        response = client.models.generate_content(
-            model=model_name,
-            contents=prompt,
+        response = await client.chat.completions.create(
+            model=model_name, messages=[{"role": "user", "content": prompt}]
         )
-        text: str = response.text
+        text: str = str(response.choices[0].message.content)
         return text
 
     except Exception as e:

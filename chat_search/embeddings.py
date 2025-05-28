@@ -27,16 +27,16 @@ class EmbeddingSearcher:
         # Convert embeddings to numpy array for faster computation
         self.embeddings = np.array([item["embedding"] for item in self.embeddings_data])
 
-    def get_query_embedding(self, query: str) -> List[float]:
+    async def get_query_embedding(self, query: str) -> List[float]:
         """Get embedding for a query string."""
         instance = TextEmbeddingInput(text=query, task_type="RETRIEVAL_QUERY")
-        embedding = self.model.get_embeddings([instance])[0]
-        return np.array(embedding.values)  # type: ignore
+        embedding = await self.model.get_embeddings_async([instance])
+        return np.array(embedding[0].values)  # type: ignore
 
-    def find_similar(self, query: str, top_k: int = 5) -> List[Dict[str, Any]]:
+    async def find_similar(self, query: str, top_k: int = 5) -> List[Dict[str, Any]]:
         """Find most similar threads to the query."""
         # Get query embedding
-        query_embedding = self.get_query_embedding(query)
+        query_embedding = await self.get_query_embedding(query)
 
         # Compute cosine similarity
         similarities = np.dot(self.embeddings, query_embedding) / (
