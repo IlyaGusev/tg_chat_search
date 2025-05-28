@@ -2,6 +2,8 @@
 
 import json
 import shutil
+import copy
+import os
 from typing import List, Dict, Any
 
 import fire  # type: ignore
@@ -25,6 +27,7 @@ def generate_embeddings(
     project_id: str = "genai-415421",
     region: str = "us-central1",
     model_name: str = "text-multilingual-embedding-002",
+    nrows: int = 5000,
 ) -> None:
 
     vertexai.init(project=project_id, location=region)
@@ -35,16 +38,18 @@ def generate_embeddings(
     threads = load_threads(input_file)
     print(f"Found {len(threads)} threads")
 
-    with open(output_file, "r", encoding="utf-8") as f:
-        existing_embeddings = json.load(f)
     existing_urls = set()
-    for embedding in existing_embeddings["embeddings"]:
-        existing_urls.update(embedding["urls"])
+    all_embeddings = list()
+    if os.path.exists(output_file):
+        with open(output_file, "r", encoding="utf-8") as f:
+            existing_embeddings = json.load(f)["embeddings"]
+        for embedding in existing_embeddings:
+            existing_urls.update(embedding["urls"])
+        all_embeddings = copy.deepcopy(existing_embeddings)
 
-    all_embeddings = existing_embeddings["embeddings"]
-    new_threads = [thread for thread in threads if thread["urls"][0] not in existing_urls]
+    new_threads = [thread for thread in threads if thread["urls"][0] not in existing_urls][:nrows]
     for i in tqdm(range(0, len(new_threads), batch_size), desc="Generating embeddings"):
-        batch = threads[i : i + batch_size]
+        batch = new_threads[i : i + batch_size]
         instances = [
             TextEmbeddingInput(text=thread["text"], task_type="RETRIEVAL_DOCUMENT")
             for thread in batch
@@ -58,9 +63,9 @@ def generate_embeddings(
             }
             all_embeddings.append(embedding_data)
 
-        with open(output_file + "_tmp", "w", encoding="utf-8") as f:
-            json.dump({"embeddings": all_embeddings}, f, ensure_ascii=False, indent=2)
-        shutil.move(output_file + "_tmp", output_file)
+    with open(output_file + "_tmp", "w", encoding="utf-8") as f:
+        json.dump({"embeddings": all_embeddings}, f, ensure_ascii=False, indent=2)
+    shutil.move(output_file + "_tmp", output_file)
     print("Done!")
 
 
