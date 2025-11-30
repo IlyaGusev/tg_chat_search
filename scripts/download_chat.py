@@ -7,9 +7,7 @@ from dotenv import load_dotenv
 from telethon import TelegramClient  # type: ignore
 
 
-CHATS = {
-    "natural_language_processing": -1001095835958
-}
+CHATS = {"natural_language_processing": -1001095835958}
 URL_TEMPLATE = "https://t.me/{}/{}"
 
 

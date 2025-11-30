@@ -1,21 +1,16 @@
 import json
-import shutil
-from datetime import datetime, timezone, timedelta
-from typing import List
+from datetime import datetime, timezone
+from typing import List, Dict, Any, Optional
 
-import fire
+import fire  # type: ignore
 import requests
-import html2text
-from lxml import etree
-from lxml.html import tostring
+import html2text  # type: ignore
+from lxml import etree  # type: ignore
+from lxml.html import tostring  # type: ignore
 from bs4 import BeautifulSoup
 
 
-def get_current_ts():
-    return int(datetime.now().replace(tzinfo=timezone.utc).timestamp())
-
-
-def parse_post_url(url):
+def parse_post_url(url: str) -> Dict[str, Any]:
     url = url.split("?")[0]
     channel_id, post_id = url.split("/")[-2:]
     return {
@@ -26,13 +21,13 @@ def parse_post_url(url):
     }
 
 
-def to_timestamp(dt_str):
+def to_timestamp(dt_str: str) -> int:
     dt = datetime.strptime(dt_str, "%Y-%m-%dT%H:%M:%S+00:00")
     dt = dt.replace(tzinfo=timezone.utc)
     return int(dt.timestamp())
 
 
-def html2text_setup():
+def html2text_setup() -> html2text.HTML2Text:
     instance = html2text.HTML2Text(bodywidth=0)
     instance.ignore_links = True
     instance.ignore_images = True
@@ -47,26 +42,25 @@ class TelegramSpider:
     channel_url_template = "https://t.me/s/{}"
     post_url_template = "https://t.me/{}?embed=1"
 
-    def __init__(self, channels: List[str], *args, **kwargs):
+    def __init__(self, channels: List[str], *args: Any, **kwargs: Any) -> None:
         self.channels = channels
         self.html2text = html2text_setup()
 
         super().__init__(*args, **kwargs)
 
-    def __call__(self):
+    def __call__(self) -> List[Dict[str, Any]]:
         urls = {self.channel_url_template.format(ch) for ch in self.channels}
         records = []
         for url in urls:
             records += self.parse_channel(url)
         return records
 
-    def parse_channel(self, url):
+    def parse_channel(self, url: str) -> List[Dict[str, Any]]:
         print(url)
         channel_name = url.split("/")[-1].split("?")[0]
         history_path = "//body/main/div/section[contains(@class, 'tgme_channel_history')]/div"
         doc = requests.get(url).content
         response = etree.HTML(doc)
-        soup = BeautifulSoup(doc, 'html.parser')
         posts = response.xpath(history_path + "/div")
 
         records = []
@@ -75,12 +69,11 @@ class TelegramSpider:
             post_path = post.xpath("@data-post")[0]
             post_soup = BeautifulSoup(tostring(post), features="lxml")
             post_time_element = post_soup.select_one("time.time")
-            post_time = post_time_element.get('datetime') if post_time_element else None
+            post_time = post_time_element.get("datetime") if post_time_element else None
             if not post_path or not post_time:
                 continue
 
             post_id = int(post_path.split("/")[-1])
-            post_ts = to_timestamp(post_time)
             min_post_id = min(post_id, min_post_id) if min_post_id is not None else post_id
             post_url = self.post_url_template.format(post_path)
             try:
@@ -95,14 +88,13 @@ class TelegramSpider:
                 print(f"Unexpected error at {post_url}:", str(e))
                 continue
 
-        current_ts = get_current_ts()
         url = url.split("?")[0]
         url += "?before={}".format(min_post_id)
-        if min_post_id <= 1:
+        if min_post_id and min_post_id <= 1:
             return records
         return records + self.parse_channel(url)
 
-    def _parse_post(self, post_element, post_url):
+    def _parse_post(self, post_element, post_url: str) -> Optional[Dict[str, Any]]:
         text_path = "div.tgme_widget_message_bubble > div.tgme_widget_message_text"
         text_alt_path = "div.tgme_widget_message_bubble > div.media_supported_cont > div.tgme_widget_message_text"
         time_path = "time.time"
@@ -120,7 +112,7 @@ class TelegramSpider:
             return None
 
         item["text"] = self._parse_html(str(text_element))
-        item["links"] = [l.get('href') for l in text_element.select("a")]
+        item["links"] = [link.get("href") for link in text_element.select("a")]
         item["fetch_time"] = int(datetime.now().replace(tzinfo=timezone.utc).timestamp())
 
         time_element = post_element.select_one(time_path).get("datetime")
@@ -147,32 +139,34 @@ class TelegramSpider:
 
 
 def download_channels(output_file: str) -> None:
-    spider = TelegramSpider([
-        "senior_augur",
-        "denissexy",
-        "doomgrad",
-        "seeallochnaya",
-        "izolenta_mebiusa",
-        "tech_priestess",
-        "lovedeathtransformers",
-        "knowledge_accumulator",
-        "vikhrlabs",
-        "boris_again",
-        "gonzo_ML",
-        "quant_prune_distill",
-        "nadlskom",
-        "elkornacio",
-        "rybolos_channel",
-        "def_model_train",
-        "AIexTime",
-        "new_yorko_times",
-        "abstractDL",
-        "partially_unsupervised",
-        "epsiloncorrect",
-        "mishin_learning",
-        "korneychukov",
-        "ruadaptnaya",
-    ])
+    spider = TelegramSpider(
+        [
+            "senior_augur",
+            "denissexy",
+            "doomgrad",
+            "seeallochnaya",
+            "izolenta_mebiusa",
+            "tech_priestess",
+            "lovedeathtransformers",
+            "knowledge_accumulator",
+            "vikhrlabs",
+            "boris_again",
+            "gonzo_ML",
+            "quant_prune_distill",
+            "nadlskom",
+            "elkornacio",
+            "rybolos_channel",
+            "def_model_train",
+            "AIexTime",
+            "new_yorko_times",
+            "abstractDL",
+            "partially_unsupervised",
+            "epsiloncorrect",
+            "mishin_learning",
+            "korneychukov",
+            "ruadaptnaya",
+        ]
+    )
     records = spider()
     with open(output_file, "w") as w:
         for record in records:

@@ -48,6 +48,15 @@
             color: #666;
             font-size: 0.9em;
         }
+        .result .metadata {
+            color: #666;
+            font-size: 0.9em;
+            margin-top: 5px;
+        }
+        .result .metadata .source {
+            font-weight: bold;
+            color: #444;
+        }
         .answer {
             margin-bottom: 20px;
             padding: 15px;
@@ -143,8 +152,14 @@
                     return `<div class="message">${message}${urlsHtml}</div>`;
                 }).join('');
 
+                const pubDate = result.pub_time ? new Date(result.pub_time * 1000).toLocaleString() : 'Unknown';
+                const source = result.source || 'Unknown';
+
                 resultElement.innerHTML = `
                     ${messagesHtml}
+                    <div class="metadata">
+                        <span class="source">${source}</span> • ${pubDate}
+                    </div>
                     <div class="similarity">Similarity: ${(result.similarity * 100).toFixed(1)}%</div>
                 `;
                 resultsDiv.appendChild(resultElement);

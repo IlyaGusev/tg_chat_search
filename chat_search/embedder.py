@@ -1,5 +1,5 @@
 import os
-from typing import List, Any, Generator, Optional, Dict
+from typing import List, Any, Generator, Optional, cast
 
 import numpy as np
 from openai import AsyncOpenAI
@@ -14,7 +14,7 @@ def gen_batch(records: List[Any], batch_size: int) -> Generator[Any, None, None]
     batch_start = 0
     while batch_start < len(records):
         batch_end = batch_start + batch_size
-        batch = records[batch_start: batch_end]
+        batch = records[batch_start:batch_end]
         batch_start = batch_end
         yield batch
 
@@ -42,7 +42,7 @@ class Embedder:
     async def embed(
         self,
         texts: List[str],
-    ) -> np.array:
+    ) -> List[List[float]]:
         embeddings = np.zeros((len(texts), self.embedding_dim))
         current_index = 0
         for batch in gen_batch(texts, self.batch_size):
@@ -50,18 +50,11 @@ class Embedder:
                 model=self.model_name,
                 input=batch,
                 dimensions=self.embedding_dim,
-                encoding_format="float"
+                encoding_format="float",
             )
             assert batch_embeddings.data
             for i, embedding in enumerate(batch_embeddings.data):
                 assert len(embedding.embedding) == self.embedding_dim
                 embeddings[current_index + i] = embedding.embedding
             current_index += self.batch_size
-        return embeddings
-
-
-if __name__ == "__main__":
-    from dotenv import load_dotenv
-    import asyncio
-    load_dotenv()
-    asyncio.run(Embedder().embed(["Hello world", "Hello world"]))
+        return cast(List[List[float]], embeddings)

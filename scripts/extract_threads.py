@@ -2,7 +2,7 @@
 
 import json
 from pathlib import Path
-from typing import Dict, List, Optional, TypedDict, Union, Any
+from typing import Dict, List, Optional, TypedDict, Union, Any, Tuple
 from collections import defaultdict
 
 import fire  # type: ignore
@@ -11,7 +11,7 @@ import fire  # type: ignore
 class MessageThread(TypedDict):
     id: int
     text: str
-    source: Optional[str]
+    source: str
     pub_time: Optional[int]
     reply_to_message_id: Optional[int]
     replies: List["MessageThread"]
@@ -30,12 +30,13 @@ def extract_text(text_data: Union[str, List[Union[str, Any]]]) -> str:
 
 
 def build_thread_tree(
-    root_msg: MessageThread, messages_by_parent: Dict[int, List[MessageThread]]
+    root_msg: MessageThread, messages_by_parent: Dict[Tuple[str, int], List[MessageThread]]
 ) -> MessageThread:
     thread = root_msg
     msg_id = root_msg["id"]
+    msg_source = root_msg["source"]
     thread["replies"] = []
-    for reply in messages_by_parent[msg_id]:
+    for reply in messages_by_parent[(msg_source, msg_id)]:
         reply_thread = build_thread_tree(reply, messages_by_parent)
         thread["replies"].append(reply_thread)
     return thread
@@ -74,7 +75,7 @@ def extract_threads(
         with open(input_file, "r", encoding="utf-8") as f:
             messages = [json.loads(line) for line in f]
 
-    messages_by_parent: Dict[int, List[MessageThread]] = defaultdict(list)
+    messages_by_parent: Dict[Tuple[str, int], List[MessageThread]] = defaultdict(list)
     root_messages: List[MessageThread] = list()
 
     print("Processing messages...")
@@ -97,18 +98,20 @@ def extract_threads(
         if url:
             urls = [url]
 
+        source = msg.get("source")
+
         thread_msg = MessageThread(
             id=msg_id,
-            source=msg.get("source"),
+            source=source,
             pub_time=msg.get("pub_time"),
             text=text,
             reply_to_message_id=reply_to,
             replies=[],
-            urls=urls
+            urls=urls,
         )
 
         if reply_to:
-            messages_by_parent[reply_to].append(thread_msg)
+            messages_by_parent[(source, reply_to)].append(thread_msg)
         else:
             root_messages.append(thread_msg)
 
@@ -125,12 +128,18 @@ def extract_threads(
             thread_text = format_thread(thread)
             if len(thread_text) < min_text_length:
                 continue
-            f.write(json.dumps({
-                "text": format_thread(thread),
-                "urls": get_urls(thread),
-                "source": thread["source"],
-                "pub_time": thread["pub_time"],
-            }, ensure_ascii=False) + "\n")
+            f.write(
+                json.dumps(
+                    {
+                        "text": format_thread(thread),
+                        "urls": get_urls(thread),
+                        "source": thread["source"],
+                        "pub_time": thread["pub_time"],
+                    },
+                    ensure_ascii=False,
+                )
+                + "\n"
+            )
 
     print("Done!")
 

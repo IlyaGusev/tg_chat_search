@@ -44,12 +44,7 @@ async def generate_embeddings(
             for line in f:
                 item = json.loads(line)
                 existing_urls.update(item["urls"])
-                all_metadata.append(
-                    {
-                        "text": item["text"],
-                        "urls": item["urls"],
-                    }
-                )
+                all_metadata.append(item)
         with open(output_embeddings_file, "rb") as f:
             all_embeddings = np.load(f)["embeddings"]
         assert len(all_metadata) == len(all_embeddings)

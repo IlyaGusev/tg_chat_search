@@ -45,6 +45,8 @@ class SearchResult(BaseModel):
     text: str
     urls: List[str]
     similarity: float
+    source: str | None = None
+    pub_time: int | None = None
 
 
 class SearchAndAnswerResponse(BaseModel):

@@ -14,7 +14,7 @@ async def generate_text(
     prompt: str,
     model_name: str = DEFAULT_MODEL_NAME,
     base_url: str = DEFAULT_BASE_URL,
-    api_key: Optional[str] = None
+    api_key: Optional[str] = None,
 ) -> str:
     if not api_key:
         api_key = os.getenv("OPENROUTER_API_KEY")
