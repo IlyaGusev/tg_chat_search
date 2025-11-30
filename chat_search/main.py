@@ -8,13 +8,15 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import uvicorn
 import logging
+from dotenv import load_dotenv
 
-from chat_search.embeddings import EmbeddingSearcher
+from chat_search.search import EmbeddingSearcher
 from chat_search.llm import generate_text
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+load_dotenv()
 app = FastAPI(
     title="Chat Search API",
     description="API for semantic search over chat threads using embeddings",
@@ -29,8 +31,8 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-embeddings_file = Path("nlp_embeddings.npz")
-metadata_file = Path("nlp_items.jsonl")
+embeddings_file = Path("all_embeddings.npz")
+metadata_file = Path("all_meta.jsonl")
 searcher = EmbeddingSearcher(embeddings_file=embeddings_file, metadata_file=metadata_file)
 
 

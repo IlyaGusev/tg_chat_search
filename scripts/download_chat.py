@@ -7,7 +7,10 @@ from dotenv import load_dotenv
 from telethon import TelegramClient  # type: ignore
 
 
-NLP_ID = -1001095835958
+CHATS = {
+    "natural_language_processing": -1001095835958
+}
+URL_TEMPLATE = "https://t.me/{}/{}"
 
 
 async def download_chats(output_path: str) -> None:
@@ -17,9 +20,8 @@ async def download_chats(output_path: str) -> None:
     client = TelegramClient("get_chat", api_id, api_hash)
     await client.start()
 
-    chat_ids = [NLP_ID]
     with open(output_path, "w") as f:
-        for chat_id in chat_ids:
+        for chat_name, chat_id in CHATS.items():
             chat = await client.get_input_entity(chat_id)
             async for message in tqdm(client.iter_messages(chat)):
                 message_id = message.id
@@ -31,10 +33,13 @@ async def download_chats(output_path: str) -> None:
                 reply_to_message_id = message.reply_to.reply_to_msg_id if message.reply_to else None
                 record = {
                     "id": message_id,
+                    "url": URL_TEMPLATE.format(chat_name, message_id),
                     "type": "message",
                     "text": text,
                     "reply_to_message_id": reply_to_message_id,
                     "chat_id": chat_id,
+                    "pub_time": int(message.date.timestamp()),
+                    "source": chat_name,
                 }
                 f.write(json.dumps(record, ensure_ascii=False) + "\n")
 

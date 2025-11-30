@@ -11,8 +11,11 @@ import fire  # type: ignore
 class MessageThread(TypedDict):
     id: int
     text: str
+    source: Optional[str]
+    pub_time: Optional[int]
     reply_to_message_id: Optional[int]
     replies: List["MessageThread"]
+    urls: List[str]
 
 
 def extract_text(text_data: Union[str, List[Union[str, Any]]]) -> str:
@@ -43,18 +46,21 @@ def format_thread(thread: MessageThread, tab_level: int = 0) -> str:
     text = f"{'--' * tab_level} {text}"
     for reply in thread["replies"]:
         text += f"\n{format_thread(reply, tab_level + 1)}"
-    return text
+    return text.strip()
 
 
-def get_urls(thread: MessageThread, root_url: str) -> List[str]:
-    urls = [root_url + str(thread["id"])]
+def get_urls(thread: MessageThread) -> List[str]:
+    assert thread["urls"]
+    urls = thread["urls"][:]
     for reply in thread["replies"]:
-        urls.extend(get_urls(reply, root_url))
+        urls.extend(get_urls(reply))
     return urls
 
 
-def process_dump(
-    input_file: Path, output_file: Path, root_url: str = "https://t.me/natural_language_processing/"
+def extract_threads(
+    input_file: Path,
+    output_file: Path,
+    min_text_length: int = 50,
 ) -> None:
     print(f"Reading {input_file}...")
 
@@ -73,7 +79,7 @@ def process_dump(
 
     print("Processing messages...")
     for msg in messages:
-        if msg.get("type") != "message":
+        if msg.get("type", "message") != "message":
             continue
 
         msg_id = msg.get("id")
@@ -86,7 +92,20 @@ def process_dump(
 
         reply_to = msg.get("reply_to_message_id")
 
-        thread_msg = MessageThread(id=msg_id, text=text, reply_to_message_id=reply_to, replies=[])
+        url = msg.get("url")
+        urls = []
+        if url:
+            urls = [url]
+
+        thread_msg = MessageThread(
+            id=msg_id,
+            source=msg.get("source"),
+            pub_time=msg.get("pub_time"),
+            text=text,
+            reply_to_message_id=reply_to,
+            replies=[],
+            urls=urls
+        )
 
         if reply_to:
             messages_by_parent[reply_to].append(thread_msg)
@@ -102,23 +121,19 @@ def process_dump(
     print(f"Writing results to {output_file}...")
 
     with open(output_file, "w", encoding="utf-8") as f:
-        json.dump(
-            {
-                "threads": [
-                    {
-                        "text": format_thread(thread),
-                        "urls": get_urls(thread, root_url=root_url),
-                    }
-                    for thread in complete_threads
-                ]
-            },
-            f,
-            ensure_ascii=False,
-            indent=2,
-        )
+        for thread in complete_threads:
+            thread_text = format_thread(thread)
+            if len(thread_text) < min_text_length:
+                continue
+            f.write(json.dumps({
+                "text": format_thread(thread),
+                "urls": get_urls(thread),
+                "source": thread["source"],
+                "pub_time": thread["pub_time"],
+            }, ensure_ascii=False) + "\n")
 
     print("Done!")
 
 
 if __name__ == "__main__":
-    fire.Fire(process_dump)
+    fire.Fire(extract_threads)
