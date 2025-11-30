@@ -84,7 +84,8 @@
 
             try {
                 showLoading('Searching...');
-                const response = await fetch(`${window.location.origin}/search`, {
+                const basePath = window.location.pathname.split('/')[1];
+                const response = await fetch(`${window.location.origin}/${basePath}/search`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',

@@ -14,7 +14,7 @@ client = AsyncOpenAI(
 )
 
 
-async def generate_text(prompt: str, model_name: str = "gemini-2.5-flash-preview-04-17") -> str:
+async def generate_text(prompt: str, model_name: str = "gemini-2.5-flash") -> str:
     logger.info(f"Generating text with model: {model_name}")
     try:
         response = await client.chat.completions.create(

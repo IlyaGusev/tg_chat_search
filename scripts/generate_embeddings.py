@@ -2,18 +2,17 @@
 
 import json
 import shutil
-import copy
 import os
 from typing import List, Dict, Any
 
 import fire  # type: ignore
 from tqdm import tqdm  # type: ignore
 import vertexai  # type: ignore
+import numpy as np
 from vertexai.language_models import TextEmbeddingModel, TextEmbeddingInput  # type: ignore
 
 
 def load_threads(input_file: str) -> List[Dict[str, Any]]:
-    """Load threads from the processed JSON file."""
     with open(input_file, "r", encoding="utf-8") as f:
         data = json.load(f)
     threads: List[Dict[str, Any]] = data["threads"][::-1]
@@ -22,7 +21,8 @@ def load_threads(input_file: str) -> List[Dict[str, Any]]:
 
 def generate_embeddings(
     input_file: str,
-    output_file: str,
+    output_embeddings_file: str,
+    output_metadata_file: str,
     batch_size: int = 32,
     project_id: str = "genai-415421",
     region: str = "us-central1",
@@ -39,15 +39,28 @@ def generate_embeddings(
     print(f"Found {len(threads)} threads")
 
     existing_urls = set()
-    all_embeddings = list()
-    if os.path.exists(output_file):
-        with open(output_file, "r", encoding="utf-8") as f:
-            existing_embeddings = json.load(f)["embeddings"]
-        for embedding in existing_embeddings:
-            existing_urls.update(embedding["urls"])
-        all_embeddings = copy.deepcopy(existing_embeddings)
+    all_metadata = []
+    all_embeddings = np.array([])
+
+    if os.path.exists(output_metadata_file):
+        with open(output_metadata_file, "r", encoding="utf-8") as f:
+            for line in f:
+                item = json.loads(line)
+                existing_urls.update(item["urls"])
+                all_metadata.append(
+                    {
+                        "text": item["text"],
+                        "urls": item["urls"],
+                    }
+                )
+
+        with open(output_embeddings_file, "rb") as f:
+            all_embeddings = np.load(f)["embeddings"]
 
     new_threads = [thread for thread in threads if thread["urls"][0] not in existing_urls][:nrows]
+    print(f"Processing {len(new_threads)} new threads")
+
+    new_embeddings_list = []
     for i in tqdm(range(0, len(new_threads), batch_size), desc="Generating embeddings"):
         batch = new_threads[i : i + batch_size]
         instances = [
@@ -55,17 +68,32 @@ def generate_embeddings(
             for thread in batch
         ]
         embeddings = model.get_embeddings(instances)
-        for j, thread in enumerate(batch):
-            embedding_data = {
-                "text": thread["text"],
-                "urls": thread["urls"],
-                "embedding": embeddings[j].values,
-            }
-            all_embeddings.append(embedding_data)
 
-    with open(output_file + "_tmp", "w", encoding="utf-8") as f:
-        json.dump({"embeddings": all_embeddings}, f, ensure_ascii=False, indent=2)
-    shutil.move(output_file + "_tmp", output_file)
+        for j, thread in enumerate(batch):
+            all_metadata.append(
+                {
+                    "text": thread["text"],
+                    "urls": thread["urls"],
+                }
+            )
+            new_embeddings_list.append(embeddings[j].values)
+
+    if new_embeddings_list:
+        new_embeddings = np.array(new_embeddings_list)
+        if all_embeddings is not None:
+            all_embeddings = np.vstack([all_embeddings, new_embeddings])
+        else:
+            all_embeddings = new_embeddings
+
+    with open(output_metadata_file + "_tmp", "w", encoding="utf-8") as f:
+        for metadata in all_metadata:
+            f.write(json.dumps(metadata, ensure_ascii=False) + "\n")
+    shutil.move(output_metadata_file + "_tmp", output_metadata_file)
+
+    np.savez(output_embeddings_file + "_tmp", embeddings=all_embeddings)
+    shutil.move(output_embeddings_file + "_tmp", output_embeddings_file)
+
+    print(f"Saved {len(all_metadata)} items to {output_metadata_file} and {output_embeddings_file}")
     print("Done!")
 
 

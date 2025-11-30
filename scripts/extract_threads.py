@@ -58,10 +58,16 @@ def process_dump(
 ) -> None:
     print(f"Reading {input_file}...")
 
-    with open(input_file, "r", encoding="utf-8") as f:
-        data = json.load(f)
+    if str(input_file).endswith(".json"):
+        with open(input_file, "r", encoding="utf-8") as f:
+            data = json.load(f)
 
-    messages = data.get("messages", [])
+        messages = data.get("messages", [])
+    else:
+        assert str(input_file).endswith(".jsonl")
+        with open(input_file, "r", encoding="utf-8") as f:
+            messages = [json.loads(line) for line in f]
+
     messages_by_parent: Dict[int, List[MessageThread]] = defaultdict(list)
     root_messages: List[MessageThread] = list()
 
