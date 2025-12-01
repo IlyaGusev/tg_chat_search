@@ -4,7 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Russian NLP Search</title>
-    <link rel="icon" type="image/png" href="favicon.png">
+    <link rel="icon" type="image/png" id="favicon">
+    <script>
+        const basePath = window.location.pathname.split('/').filter(p => p)[0] || '';
+        document.getElementById('favicon').href = `/${basePath}/favicon.png`;
+    </script>
     <style>
         * {
             box-sizing: border-box;
