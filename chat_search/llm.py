@@ -7,7 +7,7 @@ from openai import AsyncOpenAI
 logger = logging.getLogger(__name__)
 
 DEFAULT_BASE_URL = "https://openrouter.ai/api/v1"
-DEFAULT_MODEL_NAME = "google/gemini-2.5-flash"
+DEFAULT_MODEL_NAME = "openai/gpt-5-mini"
 
 
 async def generate_text(

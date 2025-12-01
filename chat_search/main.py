@@ -1,4 +1,5 @@
 from pathlib import Path
+from datetime import datetime
 from typing import List, Dict, Any
 
 import fire  # type: ignore
@@ -54,18 +55,27 @@ class SearchAndAnswerResponse(BaseModel):
     answer: str
 
 
-PROMPT = """Based on the following chat messages, please answer the question.
-Use only the information provided in the context. If you cannot answer the question
-based on the given context, say so.
+PROMPT = """
+Строго на основе представленных диалогов из чатов и постов из каналов ответь на запрос.
+Используй исключительно информацию, представленную в контексте.
+Если в контексте нет нужной информации для ответа на запрос, явно скажи об этом.
 
-Answer only in Russian. Отвечай на русском языке.
+Отвечай исключительно на хорошем русском языке.
+Отвечай коротко и сжато, но используй максимальный объём информации из контекста.
+Не используй Markdown в ответе.
+Не предлагай продолжения переписки - это не чат.
 
-Context:
+========
+Контекст:
 {context}
+========
 
-Question: {query}
+========
+Запрос:
+{query}
+========
 
-Answer:"""
+Твой ответ:"""
 
 
 @app.post("/search", response_model=SearchAndAnswerResponse)
@@ -77,9 +87,12 @@ async def search_and_answer(query: SearchQuery) -> SearchAndAnswerResponse:
         results: List[Dict[str, Any]] = await searcher.find_similar(query.query, query.top_k)
         logger.info(f"Found {len(results)} results")
 
+        for result in results:
+            result["pub_date"] = datetime.fromtimestamp(result["pub_time"]).strftime("%m/%d/%Y, %H:%M:%S")
+
         context = "\n\n".join(
             [
-                f"Message: {result['text']}\nSource: {', '.join(result['urls'])}"
+                f"===\nТекст:\n{result['text']}\nДата: {result['pub_date']}\nИсточник: {result['source']}\n==="
                 for result in results
             ]
         )
