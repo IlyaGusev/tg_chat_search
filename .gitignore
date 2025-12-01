@@ -176,3 +176,8 @@ cython_debug/
 # SQLite databases
 *.db
 *.db-journal
+
+# Data files
+*.jsonl
+*.json
+*.npz
