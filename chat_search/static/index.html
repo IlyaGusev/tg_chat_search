@@ -33,6 +33,23 @@
             margin: 0 auto;
             gap: 10px;
         }
+        .search-options {
+            max-width: 600px;
+            margin: 15px auto 0;
+            text-align: left;
+        }
+        .checkbox-container {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+            color: #555;
+        }
+        .checkbox-container input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+        }
         #searchInput {
             flex: 1;
             padding: 12px 16px;
@@ -79,6 +96,9 @@
             margin-bottom: 10px;
             white-space: pre-wrap;
             line-height: 1.7;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+            word-break: break-word;
         }
         .result .link {
             color: #2962ff;
@@ -114,6 +134,9 @@
             white-space: pre-wrap;
             box-shadow: 0 2px 8px rgba(41, 98, 255, 0.08);
             line-height: 1.7;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+            word-break: break-word;
         }
         .loading {
             margin: 20px 0;
@@ -145,6 +168,12 @@
             <input type="text" id="searchInput" placeholder="Enter your search query...">
             <button id="searchButton">Search</button>
         </div>
+        <div class="search-options">
+            <label class="checkbox-container">
+                <input type="checkbox" id="generateSummary" checked>
+                <span>Generate AI summary</span>
+            </label>
+        </div>
     </div>
     <div id="results"></div>
 
@@ -163,6 +192,7 @@
 
         async function performSearch() {
             const query = document.getElementById('searchInput').value;
+            const generateSummary = document.getElementById('generateSummary').checked;
             if (!query) return;
 
             try {
@@ -175,7 +205,8 @@
                     },
                     body: JSON.stringify({
                         query: query,
-                        top_k: 15
+                        top_k: 15,
+                        generate_summary: generateSummary
                     })
                 });
 
@@ -193,7 +224,6 @@
             const resultsDiv = document.getElementById('results');
             resultsDiv.innerHTML = '';
 
-            // Display answer if available
             if (answer) {
                 const answerElement = document.createElement('div');
                 answerElement.className = 'answer';

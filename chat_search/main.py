@@ -64,6 +64,7 @@ def create_app(embeddings_file: Path, metadata_file: Path, db_file: Path) -> Fas
 class SearchQuery(BaseModel):
     query: str
     top_k: int = 10
+    generate_summary: bool = True
 
 
 class SearchResult(BaseModel):
@@ -76,7 +77,7 @@ class SearchResult(BaseModel):
 
 class SearchAndAnswerResponse(BaseModel):
     results: List[SearchResult]
-    answer: str
+    answer: str | None = None
 
 
 PROMPT = """
@@ -134,20 +135,22 @@ def main(
             for result in results:
                 result["pub_date"] = datetime.fromtimestamp(result["pub_time"]).strftime("%m/%d/%Y, %H:%M:%S")
 
-            context = "\n\n".join(
-                [
-                    f"===\nТекст:\n{result['text']}\nДата: {result['pub_date']}\nИсточник: {result['source']}\n==="
-                    for result in results
-                ]
-            )
+            response = None
+            if query.generate_summary:
+                context = "\n\n".join(
+                    [
+                        f"===\nТекст:\n{result['text']}\nДата: {result['pub_date']}\nИсточник: {result['source']}\n==="
+                        for result in results
+                    ]
+                )
 
-            logger.info("Generating answer with LLM...")
-            try:
-                response = await generate_text(PROMPT.format(context=context, query=query.query))
-                logger.info("Successfully generated answer")
-            except Exception as e:
-                logger.error(f"Error generating text: {str(e)}")
-                raise
+                logger.info("Generating answer with LLM...")
+                try:
+                    response = await generate_text(PROMPT.format(context=context, query=query.query))
+                    logger.info("Successfully generated answer")
+                except Exception as e:
+                    logger.error(f"Error generating text: {str(e)}")
+                    raise
 
             typed_results: List[SearchResult] = [SearchResult(**result) for result in results]
 
