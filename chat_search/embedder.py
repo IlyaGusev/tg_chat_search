@@ -1,5 +1,5 @@
 import os
-from typing import List, Any, Generator, Optional, cast
+from typing import Any, Generator, List, Optional, cast
 
 import numpy as np
 from openai import AsyncOpenAI

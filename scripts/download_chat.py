@@ -1,11 +1,10 @@
-import os
 import json
+import os
 
 import fire  # type: ignore
-from tqdm.asyncio import tqdm  # type: ignore
 from dotenv import load_dotenv
 from telethon import TelegramClient  # type: ignore
-
+from tqdm.asyncio import tqdm
 
 CHATS = {"natural_language_processing": -1001095835958}
 URL_TEMPLATE = "https://t.me/{}/{}"

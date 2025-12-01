@@ -1,7 +1,7 @@
-import json
 import copy
+import json
 from pathlib import Path
-from typing import List, Any, Dict
+from typing import Any, Dict, List
 
 import numpy as np
 
@@ -30,12 +30,8 @@ class EmbeddingSearcher:
                 self.embeddings_data.append(item)
 
         max_timestamp = max([r["pub_time"] for r in self.embeddings_data])
-        timestamp_diffs_days = [
-            (max_timestamp - r["pub_time"]) // DAY_S for r in self.embeddings_data
-        ]
-        self.time_penalties = np.array(
-            [0.8 + 0.2 * (max(365 - d, 0) / 365) for d in timestamp_diffs_days]
-        )
+        timestamp_diffs_days = [(max_timestamp - r["pub_time"]) // DAY_S for r in self.embeddings_data]
+        self.time_penalties = np.array([0.8 + 0.2 * (max(365 - d, 0) / 365) for d in timestamp_diffs_days])
 
         self.length_penalties = np.array(
             [0.8 + 0.2 * min(len(thread["text"]), 300) / 300 for thread in self.embeddings_data]

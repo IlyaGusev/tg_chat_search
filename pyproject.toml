@@ -21,4 +21,20 @@ dependencies = [
     "html2text>=2025.4.15",
     "beautifulsoup4>=4.14.3",
     "aiosqlite>=0.20.0",
+    "types-tqdm>=4.67.0.20250809",
 ]
+
+[dependency-groups]
+dev = [
+    "black==25.1.0",
+    "mypy==1.16.0",
+    "flake8==7.2.0",
+    "pytest>=8.4.1",
+    "pytest-asyncio>=1.1.0",
+    "isort>=6.1.0",
+]
+
+[tool.flake8]
+exclude = ["*/__init__.py", ".venv"]
+ignore = "E203,F403,E501,SIM115,PIE786,W503"
+max-line-length = 120

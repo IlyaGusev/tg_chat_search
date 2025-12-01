@@ -1,14 +1,14 @@
 #!/usr/bin/env python3
 
 import json
-import shutil
 import os
-from typing import List, Dict, Any
+import shutil
+from typing import Any, Dict, List
 
 import fire  # type: ignore
-from tqdm import tqdm  # type: ignore
 import numpy as np
 from dotenv import load_dotenv
+from tqdm import tqdm
 
 from chat_search.embedder import Embedder, gen_batch
 

@@ -1,20 +1,20 @@
-from pathlib import Path
-from datetime import datetime
-from typing import List, Dict, Any, Annotated, AsyncIterator, cast
+import logging
 from contextlib import asynccontextmanager
+from datetime import datetime
+from pathlib import Path
+from typing import Annotated, Any, AsyncIterator, Dict, List, cast
 
 import fire  # type: ignore
-from fastapi import FastAPI, HTTPException, Request, Depends
-from fastapi.staticfiles import StaticFiles
-from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
 import uvicorn
-import logging
 from dotenv import load_dotenv
+from fastapi import Depends, FastAPI, HTTPException, Request
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+from pydantic import BaseModel
 
-from chat_search.search import EmbeddingSearcher
-from chat_search.llm import generate_text
 from chat_search.db import QueryLogger
+from chat_search.llm import generate_text
+from chat_search.search import EmbeddingSearcher
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -34,9 +34,7 @@ def create_app(embeddings_file: Path, metadata_file: Path, db_file: Path) -> Fas
     @asynccontextmanager
     async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         logger.info("Loading embeddings and metadata...")
-        app.state.searcher = EmbeddingSearcher(
-            embeddings_file=embeddings_file, metadata_file=metadata_file
-        )
+        app.state.searcher = EmbeddingSearcher(embeddings_file=embeddings_file, metadata_file=metadata_file)
         logger.info("Embeddings loaded")
 
         app.state.query_logger = QueryLogger(db_path=db_file)
@@ -134,9 +132,7 @@ def main(
             logger.info(f"Found {results_count} results")
 
             for result in results:
-                result["pub_date"] = datetime.fromtimestamp(result["pub_time"]).strftime(
-                    "%m/%d/%Y, %H:%M:%S"
-                )
+                result["pub_date"] = datetime.fromtimestamp(result["pub_time"]).strftime("%m/%d/%Y, %H:%M:%S")
 
             context = "\n\n".join(
                 [

@@ -1,13 +1,13 @@
 import json
 from datetime import datetime, timezone
-from typing import List, Dict, Any, Optional
+from typing import Any, Dict, List, Optional
 
 import fire  # type: ignore
+import html2text
 import requests
-import html2text  # type: ignore
+from bs4 import BeautifulSoup
 from lxml import etree  # type: ignore
 from lxml.html import tostring  # type: ignore
-from bs4 import BeautifulSoup
 
 
 def parse_post_url(url: str) -> Dict[str, Any]:

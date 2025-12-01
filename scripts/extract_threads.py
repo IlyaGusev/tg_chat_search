@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 
 import json
-from pathlib import Path
-from typing import Dict, List, Optional, TypedDict, Union, Any, Tuple
 from collections import defaultdict
+from pathlib import Path
+from typing import Any, Dict, List, Optional, Tuple, TypedDict, Union
 
 import fire  # type: ignore
 
