@@ -84,6 +84,7 @@ async def generate_embeddings(
             f.write(json.dumps(metadata, ensure_ascii=False) + "\n")
     shutil.move(f"tmp_{output_metadata_file}", output_metadata_file)
 
+    assert all_embeddings is not None, "No embeddings to save"
     print(f"Saving {len(all_embeddings)} embeddings")
     np.savez(f"tmp_{output_embeddings_file}", embeddings=all_embeddings)
     shutil.move(f"tmp_{output_embeddings_file}", output_embeddings_file)

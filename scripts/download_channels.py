@@ -94,7 +94,7 @@ class TelegramSpider:
             return records
         return records + self.parse_channel(url)
 
-    def _parse_post(self, post_element, post_url: str) -> Optional[Dict[str, Any]]:
+    def _parse_post(self, post_element: Any, post_url: str) -> Optional[Dict[str, Any]]:
         text_path = "div.tgme_widget_message_bubble > div.tgme_widget_message_text"
         text_alt_path = "div.tgme_widget_message_bubble > div.media_supported_cont > div.tgme_widget_message_text"
         time_path = "time.time"
@@ -129,7 +129,7 @@ class TelegramSpider:
 
         return item
 
-    def _parse_html(self, html):
+    def _parse_html(self, html: str) -> str:
         text = self.html2text.handle(html)
         sentences = [s.strip() for s in text.strip().split("\n") if s.strip()]
         for i, sentence in enumerate(sentences):

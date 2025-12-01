@@ -34,9 +34,17 @@ make test
 make serve
 # or
 python -m chat_search.main
-# or with custom host/port
+# or with custom options
 python -m chat_search.main --host=0.0.0.0 --port=8082
+python -m chat_search.main --embeddings_file=my_embeddings.npz --metadata_file=my_meta.jsonl
 ```
+
+CLI arguments for `main()`:
+- `--host`: Server host (default: "0.0.0.0")
+- `--port`: Server port (default: 8082)
+- `--embeddings_file`: Path to embeddings NPZ file (default: "all_embeddings.npz")
+- `--metadata_file`: Path to metadata JSONL file (default: "all_meta.jsonl")
+- `--db_file`: Path to SQLite database file (default: "queries.db")
 
 ## Architecture Overview
 
@@ -69,6 +77,7 @@ The system follows a sequential data processing pipeline:
   - POST `/search`: semantic search + LLM answer generation
   - GET `/health`: health check
   - Serves static UI from `chat_search/static/`
+  - Logs all queries to SQLite database (`queries.db`) via `QueryLogger`
 
 - `search.py`: `EmbeddingSearcher` class
   - Loads embeddings (NumPy) and metadata (JSONL) at initialization
@@ -83,6 +92,11 @@ The system follows a sequential data processing pipeline:
   - Uses OpenRouter API for text generation
   - Default: `google/gemini-2.5-flash` model
   - Configured for Russian language responses
+
+- `db.py`: `QueryLogger` class
+  - Async SQLite database wrapper using aiosqlite
+  - Logs all search queries with timestamp, parameters, results count, and errors
+  - Database file: `queries.db` (auto-created on startup)
 
 ### Key Data Flow
 
@@ -116,5 +130,7 @@ Required environment variables (set in `.env`):
 **Type checking**: Project uses strict mypy checking (`--strict --explicit-package-bases`). Type hints are required on all functions.
 
 **Code style**: Black formatting with 100-character line length. Flake8 ignores: E203, F403, E501, SIM115, PIE786, W503.
+
+**Validation**: Always run `make validate` before committing changes. This runs black, flake8, and mypy with strict type checking on both scripts and chat_search directories.
 
 **Comments**: Do not write obvious comments. Only add comments for very complicated logic that isn't self-evident from reading the code. The code should be self-documenting through clear variable and function names.
