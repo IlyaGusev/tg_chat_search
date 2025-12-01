@@ -3,81 +3,155 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NLP Chat Search</title>
+    <title>Russian NLP Search</title>
     <style>
+        * {
+            box-sizing: border-box;
+        }
         body {
-            font-family: Arial, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
             max-width: 800px;
-            margin: 40px auto;
-            padding: 0 20px;
+            margin: 0 auto;
+            padding: 40px 20px 80px;
+            background-color: #fafafa;
+            color: #333;
+            line-height: 1.6;
         }
         .search-container {
             text-align: center;
+            margin-bottom: 40px;
+        }
+        h1 {
+            font-size: 2em;
             margin-bottom: 30px;
+            color: #222;
+            font-weight: 600;
+        }
+        .search-box {
+            display: flex;
+            max-width: 600px;
+            margin: 0 auto;
+            gap: 10px;
         }
         #searchInput {
-            width: 70%;
-            padding: 10px;
+            flex: 1;
+            padding: 12px 16px;
             font-size: 16px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            background: white;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+        #searchInput:focus {
+            outline: none;
+            border-color: #2962ff;
+            box-shadow: 0 0 0 3px rgba(41, 98, 255, 0.1);
         }
         #searchButton {
-            padding: 10px 20px;
+            padding: 12px 24px;
             font-size: 16px;
             cursor: pointer;
-            margin-left: 10px;
+            border: none;
+            border-radius: 8px;
+            background-color: #2962ff;
+            color: white;
+            font-weight: 500;
+            transition: background-color 0.2s, transform 0.1s;
+        }
+        #searchButton:hover {
+            background-color: #1a52d9;
+        }
+        #searchButton:active {
+            transform: translateY(1px);
         }
         .result {
             margin-bottom: 20px;
-            padding: 15px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
+            padding: 20px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+            transition: box-shadow 0.2s;
+        }
+        .result:hover {
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
         }
         .result .message {
             margin-bottom: 10px;
             white-space: pre-wrap;
+            line-height: 1.7;
         }
         .result .link {
             color: #2962ff;
-            margin-left: 5px;
+            margin-left: 8px;
             text-decoration: none;
+            font-size: 0.9em;
         }
         .result .link:hover {
             text-decoration: underline;
         }
-        .result .similarity {
-            color: #666;
-            font-size: 0.9em;
-        }
         .result .metadata {
             color: #666;
-            font-size: 0.9em;
-            margin-top: 5px;
+            font-size: 0.85em;
+            margin-top: 12px;
+            padding-top: 10px;
+            border-top: 1px solid #eee;
         }
         .result .metadata .source {
-            font-weight: bold;
+            font-weight: 600;
             color: #444;
         }
+        .result .similarity {
+            color: #888;
+            font-size: 0.8em;
+            margin-top: 8px;
+        }
         .answer {
-            margin-bottom: 20px;
-            padding: 15px;
-            background-color: #f5f5f5;
-            border-radius: 4px;
+            margin-bottom: 30px;
+            padding: 20px;
+            background: linear-gradient(to bottom, #f8f9ff, #ffffff);
+            border-left: 4px solid #2962ff;
+            border-radius: 8px;
             white-space: pre-wrap;
+            box-shadow: 0 2px 8px rgba(41, 98, 255, 0.08);
+            line-height: 1.7;
         }
         .loading {
             margin: 20px 0;
             font-style: italic;
             color: #666;
+            text-align: center;
+        }
+        footer {
+            text-align: center;
+            padding: 20px;
+            margin-top: 60px;
+            border-top: 1px solid #e0e0e0;
+            color: #666;
+            font-size: 0.9em;
+        }
+        footer a {
+            color: #2962ff;
+            text-decoration: none;
+        }
+        footer a:hover {
+            text-decoration: underline;
         }
     </style>
 </head>
 <body>
     <div class="search-container">
-        <h1>NLP Chat Search</h1>
-        <input type="text" id="searchInput" placeholder="Enter your search query...">
-        <button id="searchButton">Search</button>
+        <h1>Russian NLP Search</h1>
+        <div class="search-box">
+            <input type="text" id="searchInput" placeholder="Enter your search query...">
+            <button id="searchButton">Search</button>
+        </div>
     </div>
     <div id="results"></div>
+
+    <footer>
+        <p>Powered by semantic search over Russian NLP Telegram chats and channels</p>
+        <p>Author: <a href="https://t.me/senior_augur" target="_blank">@senior_augur</a></p>
+    </footer>
 
     <script>
         document.getElementById('searchButton').addEventListener('click', performSearch);
@@ -101,7 +175,7 @@
                     },
                     body: JSON.stringify({
                         query: query,
-                        top_k: 10
+                        top_k: 15
                     })
                 });
 
