@@ -68,6 +68,13 @@ The system follows a sequential data processing pipeline:
      - `*_embeddings.npz`: NumPy array of embeddings
      - `*_meta.jsonl`: Metadata (text and URLs) for each embedding
 
+4. **Query analytics** (`scripts/get_queries.py`)
+   - Analyzes saved queries from the SQLite database
+   - Commands:
+     - `python scripts/get_queries.py all` - Show all queries grouped with counts
+     - `python scripts/get_queries.py recent --limit=20` - Show recent queries
+     - `python scripts/get_queries.py stats` - Show database statistics
+
 ### Search Service (chat_search/)
 
 **Core modules**:
