@@ -8,6 +8,7 @@ DEFAULT_BASE_URL = "https://openrouter.ai/api/v1"
 DEFAULT_MODEL_NAME = "google/gemini-embedding-001"
 DEFAULT_BATCH_SIZE = 16
 DEFAULT_EMBEDDING_DIM = 768
+DEFAULT_NUM_RETRIES = 3
 
 
 def gen_batch(records: List[Any], batch_size: int) -> Generator[Any, None, None]:
@@ -27,6 +28,7 @@ class Embedder:
         base_url: Optional[str] = DEFAULT_BASE_URL,
         batch_size: int = DEFAULT_BATCH_SIZE,
         embedding_dim: int = DEFAULT_EMBEDDING_DIM,
+        num_retries: int = DEFAULT_NUM_RETRIES,
     ) -> None:
         if not api_key:
             api_key = os.getenv("OPENROUTER_API_KEY")
@@ -38,6 +40,7 @@ class Embedder:
         self.model_name = model_name
         self.batch_size = batch_size
         self.embedding_dim = embedding_dim
+        self.num_retries = num_retries
 
     async def embed(
         self,
@@ -46,13 +49,20 @@ class Embedder:
         embeddings = np.zeros((len(texts), self.embedding_dim))
         current_index = 0
         for batch in gen_batch(texts, self.batch_size):
-            batch_embeddings = await self.client.embeddings.create(
-                model=self.model_name,
-                input=batch,
-                dimensions=self.embedding_dim,
-                encoding_format="float",
-            )
-            assert batch_embeddings.data
+            for retry_index in range(self.num_retries):
+                try:
+                    batch_embeddings = await self.client.embeddings.create(
+                        model=self.model_name,
+                        input=batch,
+                        dimensions=self.embedding_dim,
+                        encoding_format="float",
+                    )
+                    assert batch_embeddings.data
+                    break
+                except Exception:
+                    if retry_index == self.num_retries - 1:
+                        raise
+                    continue
             for i, embedding in enumerate(batch_embeddings.data):
                 assert len(embedding.embedding) == self.embedding_dim
                 embeddings[current_index + i] = embedding.embedding

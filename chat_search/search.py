@@ -31,10 +31,10 @@ class EmbeddingSearcher:
 
         max_timestamp = max([r["pub_time"] for r in self.embeddings_data])
         timestamp_diffs_days = [(max_timestamp - r["pub_time"]) // DAY_S for r in self.embeddings_data]
-        self.time_penalties = np.array([0.8 + 0.2 * (max(365 - d, 0) / 365) for d in timestamp_diffs_days])
+        self.time_penalties = np.array([0.9 + 0.1 * (max(365 - d, 0) / 365) for d in timestamp_diffs_days])
 
         self.length_penalties = np.array(
-            [0.8 + 0.2 * min(len(thread["text"]), 300) / 300 for thread in self.embeddings_data]
+            [0.85 + 0.15 * min(len(thread["text"]), 300) / 300 for thread in self.embeddings_data]
         )
 
     async def get_query_embedding(self, query: str) -> List[float]:

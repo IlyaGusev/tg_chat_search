@@ -3,7 +3,7 @@
 import json
 import os
 import shutil
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 import fire  # type: ignore
 import numpy as np
@@ -30,7 +30,7 @@ async def generate_embeddings(
     output_embeddings_file: str,
     output_metadata_file: str,
     batch_size: int = 32,
-    nrows: int = 5000,
+    nrows: Optional[int] = None,
 ) -> None:
     embedder = Embedder(batch_size=batch_size)
 
