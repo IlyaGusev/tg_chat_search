@@ -1,6 +1,6 @@
 import logging
 import os
-from typing import Optional
+from typing import AsyncIterator, Optional
 
 from openai import AsyncOpenAI
 
@@ -34,4 +34,33 @@ async def generate_text(
 
     except Exception as e:
         logger.error(f"Error in generate_text: {str(e)}")
+        raise
+
+
+async def generate_text_stream(
+    prompt: str,
+    model_name: str = DEFAULT_MODEL_NAME,
+    base_url: str = DEFAULT_BASE_URL,
+    api_key: Optional[str] = None,
+) -> AsyncIterator[str]:
+    if not api_key:
+        api_key = os.getenv("OPENROUTER_API_KEY")
+
+    client = AsyncOpenAI(
+        base_url=base_url,
+        api_key=api_key,
+    )
+
+    logger.info(f"Generating text stream with model: {model_name}")
+    try:
+        stream = await client.chat.completions.create(
+            model=model_name, messages=[{"role": "user", "content": prompt}], stream=True
+        )
+
+        async for chunk in stream:
+            if chunk.choices[0].delta.content is not None:
+                yield chunk.choices[0].delta.content
+
+    except Exception as e:
+        logger.error(f"Error in generate_text_stream: {str(e)}")
         raise

@@ -1,3 +1,4 @@
+import json
 import logging
 from contextlib import asynccontextmanager
 from datetime import datetime
@@ -9,11 +10,12 @@ import uvicorn
 from dotenv import load_dotenv
 from fastapi import Depends, FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 from chat_search.db import QueryLogger
-from chat_search.llm import generate_text
+from chat_search.llm import generate_text, generate_text_stream
 from chat_search.search import EmbeddingSearcher
 
 logging.basicConfig(level=logging.INFO)
@@ -173,6 +175,79 @@ def main(
             )
 
             raise HTTPException(status_code=500, detail=error_msg)
+
+    @app.post("/search/stream")
+    async def search_and_answer_stream(
+        query: SearchQuery,
+        searcher: Annotated[EmbeddingSearcher, Depends(get_searcher)],
+        query_logger: Annotated[QueryLogger, Depends(get_query_logger)],
+    ) -> StreamingResponse:
+        async def event_generator() -> AsyncIterator[str]:
+            yield ": connected\n\n"
+
+            error_msg = None
+            results_count = None
+            try:
+                logger.info(f"Received streaming search query: {query.query}")
+
+                logger.info("Performing semantic search...")
+                results: List[Dict[str, Any]] = await searcher.find_similar(query.query, query.top_k)
+                results_count = len(results)
+                logger.info(f"Found {results_count} results")
+
+                for result in results:
+                    result["pub_date"] = datetime.fromtimestamp(result["pub_time"]).strftime("%m/%d/%Y, %H:%M:%S")
+
+                typed_results: List[SearchResult] = [SearchResult(**result) for result in results]
+
+                yield f"event: results\ndata: {json.dumps([r.model_dump() for r in typed_results])}\n\n"
+
+                if query.generate_summary:
+                    context = "\n\n".join(
+                        [
+                            f"===\nТекст:\n{result['text']}\nДата: {result['pub_date']}\nИсточник: {result['source']}\n==="
+                            for result in results
+                        ]
+                    )
+
+                    logger.info("Generating answer with LLM...")
+                    try:
+                        async for chunk in generate_text_stream(PROMPT.format(context=context, query=query.query)):
+                            yield f"event: answer\ndata: {json.dumps({'chunk': chunk})}\n\n"
+                        logger.info("Successfully generated answer")
+                    except Exception as e:
+                        logger.error(f"Error generating text: {str(e)}")
+                        yield f"event: error\ndata: {json.dumps({'error': str(e)})}\n\n"
+
+                yield "event: done\ndata: {}\n\n"
+
+                await query_logger.log_query(
+                    query=query.query,
+                    top_k=query.top_k,
+                    results_count=results_count,
+                )
+
+            except Exception as e:
+                error_msg = str(e)
+                logger.error(f"Error in search_and_answer_stream: {error_msg}")
+
+                await query_logger.log_query(
+                    query=query.query,
+                    top_k=query.top_k,
+                    results_count=results_count,
+                    error=error_msg,
+                )
+
+                yield f"event: error\ndata: {json.dumps({'error': error_msg})}\n\n"
+
+        return StreamingResponse(
+            event_generator(),
+            media_type="text/event-stream",
+            headers={
+                "Cache-Control": "no-cache",
+                "X-Accel-Buffering": "no",
+            },
+        )
 
     @app.get("/health")
     async def health_check() -> Dict[str, str]:
