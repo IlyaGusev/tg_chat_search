@@ -22,6 +22,7 @@ dependencies = [
     "beautifulsoup4>=4.14.3",
     "aiosqlite>=0.20.0",
     "types-tqdm>=4.67.0.20250809",
+    "watchfiles>=0.24.0",
 ]
 
 [dependency-groups]

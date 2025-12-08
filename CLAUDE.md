@@ -37,6 +37,8 @@ python -m chat_search.main
 # or with custom options
 python -m chat_search.main --host=0.0.0.0 --port=8082
 python -m chat_search.main --embeddings_file=my_embeddings.npz --metadata_file=my_meta.jsonl
+# or with auto-reload on file changes (for development)
+python -m chat_search.main --reload=True
 ```
 
 CLI arguments for `main()`:
@@ -45,6 +47,7 @@ CLI arguments for `main()`:
 - `--embeddings_file`: Path to embeddings NPZ file (default: "all_embeddings.npz")
 - `--metadata_file`: Path to metadata JSONL file (default: "all_meta.jsonl")
 - `--db_file`: Path to SQLite database file (default: "queries.db")
+- `--reload`: Enable auto-reload when files change - watches the specific embeddings/metadata files you're using, plus chat_search/*.py and chat_search/static/*.html (requires `watchfiles` package, installed by default) (default: False)
 
 ## Architecture Overview
 
